@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>InGen Police - Dino Hunt</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Courier New', monospace;
+            touch-action: none;
+        }
+        
+        #gameCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        #hud {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .hud-item {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff00;
+            padding: 8px 12px;
+            color: #00ff00;
+            font-size: 12px;
+            text-shadow: 0 0 10px #00ff00;
+            border-radius: 5px;
+        }
+        
+        #crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 24px;
+            height: 24px;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        #crosshair::before, #crosshair::after {
+            content: '';
+            position: absolute;
+            background: #ff0000;
+            box-shadow: 0 0 5px #ff0000;
+        }
+        
+        #crosshair::before {
+            width: 2px;
+            height: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        #crosshair::after {
+            width: 100%;
+            height: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        #crosshair .dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #ff0000;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        /* Mobile Controls */
+        #joystickContainer {
+            position: fixed;
+            left: 20px;
+            bottom: 30px;
+            width: 130px;
+            height: 130px;
+            z-index: 200;
+            touch-action: none;
+        }
+        
+        #joystickBase {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 100, 0, 0.3);
+            border-radius: 50%;
+            border: 4px solid rgba(0, 255, 0, 0.6);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+        }
+        
+        #joystickThumb {
+            position: absolute;
+            width: 55px;
+            height: 55px;
+            background: radial-gradient(circle, rgba(0, 255, 0, 0.8), rgba(0, 180, 0, 0.9));
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 3px solid #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            pointer-events: none;
+        }
+        
+        #joystickArrows {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        #joystickArrows::before {
+            content: '▲';
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        #joystickArrows::after {
+            content: '▼';
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        #fireBtn {
+            position: fixed;
+            right: 25px;
+            bottom: 35px;
+            width: 90px;
+            height: 90px;
+            background: radial-gradient(circle, rgba(255,50,50,0.9), rgba(180,0,0,0.95));
+            border-radius: 50%;
+            border: 4px solid #ff3333;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 0 0 5px #000;
+            box-shadow: 0 0 25px rgba(255,0,0,0.6);
+            touch-action: none;
+        }
+        
+        #fireBtn:active {
+            transform: scale(0.9);
+            background: radial-gradient(circle, rgba(255,100,100,1), rgba(220,0,0,1));
+        }
+        
+        #reloadBtn {
+            position: fixed;
+            right: 130px;
+            bottom: 50px;
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle, rgba(255,165,0,0.9), rgba(200,100,0,0.95));
+            border-radius: 50%;
+            border: 3px solid orange;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 0 20px rgba(255,165,0,0.6);
+            touch-action: none;
+        }
+        
+        #reloadBtn:active {
+            transform: scale(0.9);
+            background: radial-gradient(circle, rgba(255,200,50,1), rgba(255,150,0,1));
+        }
+        
+        #startScreen, #gameOverScreen, #winScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        #startScreen h1 {
+            font-size: clamp(28px, 8vw, 52px);
+            color: #ff4444;
+            text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000;
+            margin-bottom: 10px;
+        }
+        
+        #startScreen h2 {
+            font-size: clamp(18px, 5vw, 32px);
+            color: #00ff00;
+            text-shadow: 0 0 20px #00ff00;
+            margin-bottom: 30px;
+        }
+        
+        .startBtn {
+            padding: 18px 45px;
+            font-size: 20px;
+            background: linear-gradient(180deg, #ff4444, #aa0000);
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 10px;
+            text-transform: uppercase;
+            font-weight: bold;
+            box-shadow: 0 5px 30px rgba(255, 0, 0, 0.6);
+            margin-top: 20px;
+        }
+        
+        .startBtn:active {
+            transform: scale(0.95);
+        }
+        
+        .instructions {
+            margin-top: 25px;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            max-width: 350px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .instructions p {
+            margin: 8px 0;
+            font-size: 13px;
+            color: #bbb;
+        }
+        
+        .damage-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle, transparent 30%, rgba(255, 0, 0, 0.4));
+            pointer-events: none;
+            z-index: 90;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        
+        .death-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(139, 0, 0, 0.9);
+            pointer-events: none;
+            z-index: 95;
+            opacity: 0;
+            transition: opacity 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .death-overlay.active {
+            opacity: 1;
+        }
+        
+        .death-overlay h2 {
+            color: #ff0000;
+            font-size: 48px;
+            text-shadow: 0 0 20px #ff0000;
+            animation: shake 0.5s infinite;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        #dangerIndicator {
+            position: fixed;
+            bottom: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 0, 0, 0.8);
+            padding: 8px 20px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            z-index: 100;
+            display: none;
+            animation: pulse 0.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
+            50% { opacity: 0.7; transform: translateX(-50%) scale(1.05); }
+        }
+        
+        #dinoCounter {
+            position: fixed;
+            top: 50px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ff6600;
+            padding: 8px 12px;
+            color: #ff6600;
+            font-size: 12px;
+            z-index: 100;
+            border-radius: 5px;
+        }
+
+        #minimap {
+            position: fixed;
+            top: 50px;
+            right: 10px;
+            width: 100px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff00;
+            z-index: 100;
+            border-radius: 5px;
+        }
+        
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            color: #00ff00;
+            font-size: 24px;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #333;
+            border-top-color: #00ff00;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingScreen">
+        <div class="loading-spinner"></div>
+        Carregando...
+    </div>
+
+    <div id="startScreen" class="hidden">
+        <h1>🦖 INGEN POLICE 🦖</h1>
+        <h2>DINO HUNT</h2>
+        <p style="color: #888; max-width: 320px; margin-bottom: 10px;">Os dinossauros escaparam! Sua missão é eliminar todas as ameaças no labirinto.</p>
+        <button class="startBtn" id="startBtn">INICIAR CAÇADA</button>
+        <div class="instructions">
+            <p>🕹️ <strong>Joystick esquerdo:</strong> Mover</p>
+            <p>👆 <strong>Arraste na tela:</strong> Olhar 360°</p>
+            <p>🔴 <strong>Botão FIRE:</strong> Atirar</p>
+            <p>🟠 <strong>Botão RELOAD:</strong> Recarregar</p>
+        </div>
+    </div>
+    
+    <div id="gameOverScreen" class="hidden">
+        <h1 style="color: #ff0000; text-shadow: 0 0 30px #ff0000;">☠️ GAME OVER ☠️</h1>
+        <p id="deathMessage" style="color: #888; margin: 20px; font-size: 18px;">🦖 A REXY TE DEVOROU! 🦖</p>
+        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Você foi a refeição do T-Rex...</p>
+        <button class="startBtn" id="restartBtn1">TENTAR NOVAMENTE</button>
+    </div>
+    
+    <div id="winScreen" class="hidden">
+        <h1 style="color: #00ff00; text-shadow: 0 0 30px #00ff00;">🏆 VITÓRIA! 🏆</h1>
+        <p style="color: #888; margin: 20px;">Todos os dinossauros foram eliminados!</p>
+        <p id="finalScore" style="color: #ffff00; font-size: 24px;"></p>
+        <button class="startBtn" id="restartBtn2">JOGAR NOVAMENTE</button>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="hud" class="hidden">
+        <div class="hud-item">❤️ <span id="health">100</span></div>
+        <div class="hud-item">🔫 <span id="ammo">30</span>/<span id="totalAmmo">90</span></div>
+    </div>
+    
+    <div id="dinoCounter" class="hidden">🦖 DINOS: <span id="dinoCount">0</span></div>
+    
+    <canvas id="minimap" class="hidden"></canvas>
+    
+    <div id="crosshair" class="hidden"><div class="dot"></div></div>
+    
+    <div class="damage-overlay" id="damageOverlay"></div>
+    <div class="death-overlay" id="deathOverlay"><h2>🦖 CHOMP! 🦖</h2></div>
+    <div id="dangerIndicator">⚠️ REXY ESTÁ PERTO! ⚠️</div>
+    
+    <div id="joystickContainer" class="hidden">
+        <div id="joystickBase">
+            <div id="joystickArrows"></div>
+        </div>
+        <div id="joystickThumb"></div>
+    </div>
+    
+    <div id="fireBtn" class="hidden">FIRE</div>
+    <div id="reloadBtn" class="hidden">RELOAD</div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+    <script>
+        // Wait for Three.js to load
+        window.addEventListener('load', loadResources);
+        
+        // Game variables
+        let scene, camera, renderer, clock;
+        let player = { rotation: 0, pitch: 0, health: 100, ammo: 30, totalAmmo: 90 };
+        let dinosaurs = [];
+        let bullets = [];
+        let gameRunning = false;
+        let dinosKilled = 0;
+        const totalDinos = 5;
+        
+        // Dino Model
+        let dinoGLTF = null;
+        let dinoAnimations = {}; // Store all available animations
+        // Using jsdelivr for reliable CORS and MIME types
+        const dinoModelURL = 'https://cdn.jsdelivr.net/gh/ythaloythalo197-design/Utkftuktduk@main/rexy_jwd_and_jwe2.glb';
+        
+        // Animation state names
+        const DINO_STATE = {
+            IDLE: 'idle',
+            WALK: 'walk', 
+            RUN: 'run',
+            LOOK_AROUND: 'look',
+            EAT: 'eat'
+        };
+        
+        // Touch control state
+        let joystickActive = false;
+        let joystickStartX = 0;
+        let joystickStartY = 0;
+        let joystickDX = 0;
+        let joystickDY = 0;
+        
+        let lookTouchId = null;
+        let lookLastX = 0;
+        let lookLastY = 0;
+        
+        let isFiring = false;
+        let lastFireTime = 0;
+        const fireRate = 150;
+        
+        // Maze
+        const maze = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,1,0,1,0,1,1,1,1,0,1],
+            [1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1],
+            [1,0,1,0,1,1,1,1,1,1,1,1,0,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
+            [1,1,1,1,1,0,1,1,1,0,0,1,1,1,0,1],
+            [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,1,0,1,1,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,1],
+            [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+        
+        const CELL_SIZE = 4;
+        
+        function loadResources() {
+            // Check if Three.js loaded
+            if (typeof THREE === 'undefined') {
+                document.getElementById('loadingScreen').innerHTML = '<p style="color:red;">Erro: Three.js não carregou.</p>';
+                return;
+            }
+            
+            // Setup Clock
+            clock = new THREE.Clock();
+
+            // Load Dino Model
+            const loader = new THREE.GLTFLoader();
+            
+            // Setup Draco Loader for compressed models
+            const dracoLoader = new THREE.DRACOLoader();
+            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+            loader.setDRACOLoader(dracoLoader);
+
+            document.getElementById('loadingScreen').innerHTML = '<div class="loading-spinner"></div>Carregando Rexy...';
+            
+            loader.load(dinoModelURL, (gltf) => {
+                dinoGLTF = gltf;
+                console.log("Dino loaded", gltf);
+                console.log("Available animations:", gltf.animations.map(a => a.name));
+                
+                // Pre-process model if needed
+                gltf.scene.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                    }
+                });
+                
+                // Catalog all animations by type
+                if (gltf.animations && gltf.animations.length > 0) {
+                    gltf.animations.forEach((clip, index) => {
+                        const name = clip.name.toLowerCase();
+                        
+                        // Categorize animations
+                        if (name.includes('idle') || name.includes('stand') || name.includes('wait')) {
+                            if (!dinoAnimations.idle) dinoAnimations.idle = clip;
+                        }
+                        if (name.includes('walk')) {
+                            if (!dinoAnimations.walk) dinoAnimations.walk = clip;
+                        }
+                        if (name.includes('run') || name.includes('sprint')) {
+                            if (!dinoAnimations.run) dinoAnimations.run = clip;
+                        }
+                        if (name.includes('look') || name.includes('head') || name.includes('turn')) {
+                            if (!dinoAnimations.look) dinoAnimations.look = clip;
+                        }
+                        if (name.includes('eat') || name.includes('bite') || name.includes('attack') || name.includes('roar') || name.includes('snap') || name.includes('jaw')) {
+                            if (!dinoAnimations.eat) dinoAnimations.eat = clip;
+                        }
+                    });
+                    
+                    // Fallback: if we didn't find specific animations, use available ones
+                    const defaultClip = gltf.animations[0];
+                    if (!dinoAnimations.idle) dinoAnimations.idle = gltf.animations.find(a => a.name.toLowerCase().includes('idle')) || defaultClip;
+                    if (!dinoAnimations.walk) dinoAnimations.walk = gltf.animations.find(a => a.name.toLowerCase().includes('walk')) || defaultClip;
+                    if (!dinoAnimations.run) dinoAnimations.run = gltf.animations.find(a => a.name.toLowerCase().includes('run')) || dinoAnimations.walk || defaultClip;
+                    if (!dinoAnimations.look) dinoAnimations.look = dinoAnimations.idle || defaultClip;
+                    if (!dinoAnimations.eat) dinoAnimations.eat = gltf.animations.find(a => a.name.toLowerCase().includes('attack') || a.name.toLowerCase().includes('bite')) || defaultClip;
+                    
+                    console.log("Mapped animations:", dinoAnimations);
+                }
+
+                initGame();
+            }, (xhr) => {
+                const percent = Math.round((xhr.loaded / xhr.total * 100));
+                if (!isNaN(percent)) {
+                    document.getElementById('loadingScreen').innerHTML = `<div class="loading-spinner"></div>Carregando Rexy: ${percent}%`;
+                }
+            }, (error) => {
+                console.error("Error loading dino:", error);
+                document.getElementById('loadingScreen').innerHTML = '<p style="color:red;">Erro ao baixar dinossauro. Usando modelo básico.</p>';
+                setTimeout(initGame, 2000);
+            });
+        }
+        
+        function initGame() {
+            try {
+                initThree();
+                setupEventListeners();
+                
+                // Hide loading, show start screen
+                document.getElementById('loadingScreen').classList.add('hidden');
+                document.getElementById('startScreen').classList.remove('hidden');
+            } catch (e) {
+                console.error(e);
+                document.getElementById('loadingScreen').innerHTML = '<p style="color:red;">Erro: ' + e.message + '</p>';
+            }
+        }
+        
+        function initThree() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a15);
+            scene.fog = new THREE.Fog(0x0a0a15, 3, 35);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(1.5 * CELL_SIZE, 1.6, 1.5 * CELL_SIZE);
+            
+            // Renderer
+            const canvas = document.getElementById('gameCanvas');
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas, 
+                antialias: false,
+                powerPreference: "high-performance"
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            
+            // Lighting
+            const ambient = new THREE.AmbientLight(0x404060, 0.6);
+            scene.add(ambient);
+            
+            const hemi = new THREE.HemisphereLight(0x606080, 0x202020, 0.5);
+            scene.add(hemi);
+            
+            // Flashlight effect (follows camera)
+            const flashlight = new THREE.SpotLight(0xffffee, 1.2, 30, Math.PI / 3, 0.5);
+            flashlight.position.set(0, 0, 0);
+            camera.add(flashlight);
+            flashlight.target.position.set(0, 0, -1);
+            camera.add(flashlight.target);
+            scene.add(camera);
+            
+            // Build maze
+            createMaze();
+            createFloorCeiling();
+            
+            // Initial render
+            renderer.render(scene, camera);
+        }
+        
+        function createMaze() {
+            const wallGeo = new THREE.BoxGeometry(CELL_SIZE, 4, CELL_SIZE);
+            const wallMat = new THREE.MeshLambertMaterial({ color: 0x556655 });
+            
+            for (let z = 0; z < maze.length; z++) {
+                for (let x = 0; x < maze[z].length; x++) {
+                    if (maze[z][x] === 1) {
+                        const wall = new THREE.Mesh(wallGeo, wallMat);
+                        wall.position.set(
+                            x * CELL_SIZE + CELL_SIZE / 2, 
+                            2, 
+                            z * CELL_SIZE + CELL_SIZE / 2
+                        );
+                        scene.add(wall);
+                    }
+                }
+            }
+        }
+        
+        function createFloorCeiling() {
+            const size = maze.length * CELL_SIZE;
+            
+            // Floor
+            const floorGeo = new THREE.PlaneGeometry(size, size);
+            const floorMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(size / 2, 0, size / 2);
+            scene.add(floor);
+            
+            // Ceiling
+            const ceilMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+            const ceiling = new THREE.Mesh(floorGeo, ceilMat);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.set(size / 2, 4, size / 2);
+            scene.add(ceiling);
+        }
+        
+        function createPrimitiveDino() {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshLambertMaterial({ color: 0x228b22 });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            
+            const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6), mat);
+            body.scale.set(1, 0.8, 1.4);
+            body.position.y = 0.9;
+            group.add(body);
+            
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 6), mat);
+            head.scale.set(1, 0.9, 1.2);
+            head.position.set(0, 1.3, 0.65);
+            group.add(head);
+            
+            return group;
+        }
+
+        function spawnDinosaurs() {
+            dinosaurs.forEach(d => scene.remove(d.mesh));
+            dinosaurs = [];
+            mixers = []; // Clear animations
+            
+            const validSpots = [];
+            for (let z = 0; z < maze.length; z++) {
+                for (let x = 0; x < maze[z].length; x++) {
+                    if (maze[z][x] === 0) {
+                        const px = x * CELL_SIZE + CELL_SIZE / 2;
+                        const pz = z * CELL_SIZE + CELL_SIZE / 2;
+                        const dist = Math.sqrt(Math.pow(px - camera.position.x, 2) + Math.pow(pz - camera.position.z, 2));
+                        if (dist > 15) {
+                            validSpots.push({ x: px, z: pz });
+                        }
+                    }
+                }
+            }
+            
+            for (let i = 0; i < totalDinos && validSpots.length > 0; i++) {
+                const idx = Math.floor(Math.random() * validSpots.length);
+                const spot = validSpots.splice(idx, 1)[0];
+                
+                let mesh, mixer;
+                
+                if (dinoGLTF) {
+                    // Clone loaded model
+                    mesh = THREE.SkeletonUtils.clone(dinoGLTF.scene);
+                    
+                    // Normalize scale (Target height ~2.2m)
+                    const box = new THREE.Box3().setFromObject(mesh);
+                    const size = box.getSize(new THREE.Vector3());
+                    const scale = 2.2 / size.y;
+                    mesh.scale.set(scale, scale, scale);
+                    
+                    // Setup animation
+                    if (dinoGLTF.animations && dinoGLTF.animations.length > 0) {
+                        mixer = new THREE.AnimationMixer(mesh);
+                        
+                        // Try to find a walk/run animation, otherwise pick first
+                        let clip = dinoGLTF.animations.find(a => a.name.toLowerCase().includes('run')) || 
+                                   dinoGLTF.animations.find(a => a.name.toLowerCase().includes('walk')) ||
+                                   dinoGLTF.animations[0];
+                                   
+                        const action = mixer.clipAction(clip);
+                        action.play();
+                        mixers.push(mixer);
+                    }
+                } else {
+                    mesh = createPrimitiveDino();
+                }
+                
+                mesh.position.set(spot.x, 0, spot.z);
+                scene.add(mesh);
+                
+                // Create animation actions for this dinosaur
+                let actions = {};
+                if (mixer && dinoGLTF.animations.length > 0) {
+                    if (dinoAnimations.idle) actions.idle = mixer.clipAction(dinoAnimations.idle);
+                    if (dinoAnimations.walk) actions.walk = mixer.clipAction(dinoAnimations.walk);
+                    if (dinoAnimations.run) actions.run = mixer.clipAction(dinoAnimations.run);
+                    if (dinoAnimations.look) actions.look = mixer.clipAction(dinoAnimations.look);
+                    if (dinoAnimations.eat) {
+                        actions.eat = mixer.clipAction(dinoAnimations.eat);
+                        actions.eat.setLoop(THREE.LoopOnce);
+                        actions.eat.clampWhenFinished = true;
+                    }
+                    
+                    // Start with idle animation
+                    if (actions.idle) {
+                        actions.idle.play();
+                    }
+                }
+                
+                dinosaurs.push({
+                    mesh: mesh,
+                    mixer: mixer,
+                    actions: actions,
+                    currentState: DINO_STATE.IDLE,
+                    health: 100,
+                    baseSpeed: 0.03,
+                    speed: 0.03,
+                    attackCooldown: 0,
+                    lookTimer: 0,
+                    lookDirection: 0,
+                    isEating: false,
+                    stateTimer: Math.random() * 100
+                });
+            }
+            
+            updateDinoCount();
+        }
+        
+        function setupEventListeners() {
+            // Buttons
+            document.getElementById('startBtn').addEventListener('click', startGame);
+            document.getElementById('startBtn').addEventListener('touchend', (e) => { e.preventDefault(); startGame(); });
+            
+            document.getElementById('restartBtn1').addEventListener('click', restartGame);
+            document.getElementById('restartBtn1').addEventListener('touchend', (e) => { e.preventDefault(); restartGame(); });
+            
+            document.getElementById('restartBtn2').addEventListener('click', restartGame);
+            document.getElementById('restartBtn2').addEventListener('touchend', (e) => { e.preventDefault(); restartGame(); });
+            
+            // Fire button
+            const fireBtn = document.getElementById('fireBtn');
+            fireBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); isFiring = true; });
+            fireBtn.addEventListener('touchend', (e) => { e.preventDefault(); isFiring = false; });
+            fireBtn.addEventListener('mousedown', () => isFiring = true);
+            fireBtn.addEventListener('mouseup', () => isFiring = false);
+            
+            // Reload button
+            const reloadBtn = document.getElementById('reloadBtn');
+            reloadBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); reload(); });
+            reloadBtn.addEventListener('click', reload);
+            
+            // Joystick
+            const joystick = document.getElementById('joystickContainer');
+            const thumb = document.getElementById('joystickThumb');
+            
+            let joystickTouchId = null;
+            
+            joystick.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const touch = e.changedTouches[0];
+                joystickTouchId = touch.identifier;
+                const rect = joystick.getBoundingClientRect();
+                joystickActive = true;
+                joystickStartX = rect.left + rect.width / 2;
+                joystickStartY = rect.top + rect.height / 2;
+            });
+            
+            joystick.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!joystickActive) return;
+                
+                let touch = null;
+                for (let t of e.changedTouches) {
+                    if (t.identifier === joystickTouchId) {
+                        touch = t;
+                        break;
+                    }
+                }
+                if (!touch) return;
+                
+                let dx = touch.clientX - joystickStartX;
+                let dy = touch.clientY - joystickStartY;
+                
+                const maxDist = 40;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > maxDist) {
+                    dx = (dx / dist) * maxDist;
+                    dy = (dy / dist) * maxDist;
+                }
+                
+                thumb.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                joystickDX = dx / maxDist;
+                joystickDY = dy / maxDist;
+            });
+            
+            joystick.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                for (let touch of e.changedTouches) {
+                    if (touch.identifier === joystickTouchId) {
+                        joystickActive = false;
+                        joystickTouchId = null;
+                        joystickDX = 0;
+                        joystickDY = 0;
+                        thumb.style.transform = 'translate(-50%, -50%)';
+                    }
+                }
+            });
+            
+            joystick.addEventListener('touchcancel', (e) => {
+                joystickActive = false;
+                joystickTouchId = null;
+                joystickDX = 0;
+                joystickDY = 0;
+                thumb.style.transform = 'translate(-50%, -50%)';
+            });
+            
+            // Look controls - on canvas
+            const canvas = document.getElementById('gameCanvas');
+            
+            canvas.addEventListener('touchstart', (e) => {
+                if (!gameRunning) return;
+                
+                for (let touch of e.changedTouches) {
+                    // Check if touch is not on controls
+                    if (touch.clientX < 160 && touch.clientY > window.innerHeight - 170) continue;
+                    if (touch.clientX > window.innerWidth - 220 && touch.clientY > window.innerHeight - 170) continue;
+                    
+                    if (lookTouchId === null) {
+                        lookTouchId = touch.identifier;
+                        lookLastX = touch.clientX;
+                        lookLastY = touch.clientY;
+                    }
+                }
+            });
+            
+            canvas.addEventListener('touchmove', (e) => {
+                if (!gameRunning) return;
+                e.preventDefault();
+                
+                for (let touch of e.changedTouches) {
+                    if (touch.identifier === lookTouchId) {
+                        const dx = touch.clientX - lookLastX;
+                        const dy = touch.clientY - lookLastY;
+                        
+                        // Full 360 rotation - no limits on Y axis
+                        player.rotation -= dx * 0.008;
+                        player.pitch -= dy * 0.006;
+                        
+                        // Limit pitch to prevent flipping
+                        player.pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, player.pitch));
+                        
+                        lookLastX = touch.clientX;
+                        lookLastY = touch.clientY;
+                    }
+                }
+            });
+            
+            canvas.addEventListener('touchend', (e) => {
+                for (let touch of e.changedTouches) {
+                    if (touch.identifier === lookTouchId) {
+                        lookTouchId = null;
+                    }
+                }
+            });
+            
+            // Keyboard controls
+            const keys = {};
+            window.addEventListener('keydown', (e) => keys[e.code] = true);
+            window.addEventListener('keyup', (e) => keys[e.code] = false);
+            
+            setInterval(() => {
+                if (!gameRunning) return;
+                
+                // Movement - W/Up = forward (joystickDY negative means forward)
+                if (keys['KeyW'] || keys['ArrowUp']) joystickDY = -1;
+                else if (keys['KeyS'] || keys['ArrowDown']) joystickDY = 1;
+                else if (!joystickActive) joystickDY = 0;
+                
+                // A = strafe left, D = strafe right
+                if (keys['KeyA']) joystickDX = -1;
+                else if (keys['KeyD']) joystickDX = 1;
+                else if (!joystickActive) joystickDX = 0;
+                
+                // Rotation
+                if (keys['ArrowLeft']) player.rotation += 0.06;
+                if (keys['ArrowRight']) player.rotation -= 0.06;
+                
+                // Fire
+                if (keys['Space']) isFiring = true;
+                if (keys['KeyR']) reload();
+            }, 16);
+            
+            // Mouse look for desktop
+            canvas.addEventListener('click', () => {
+                if (document.pointerLockElement !== canvas) {
+                    canvas.requestPointerLock?.();
+                }
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (document.pointerLockElement === canvas && gameRunning) {
+                    player.rotation -= e.movementX * 0.003;
+                    player.pitch -= e.movementY * 0.003;
+                    player.pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, player.pitch));
+                }
+            });
+            
+            canvas.addEventListener('mousedown', () => {
+                if (gameRunning) isFiring = true;
+            });
+            canvas.addEventListener('mouseup', () => isFiring = false);
+            
+            // Resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+        
+        function fire() {
+            if (player.ammo <= 0 || Date.now() - lastFireTime < fireRate) return;
+            
+            player.ammo--;
+            lastFireTime = Date.now();
+            updateHUD();
+            
+            // Bullet
+            const bullet = new THREE.Mesh(
+                new THREE.SphereGeometry(0.08),
+                new THREE.MeshBasicMaterial({ color: 0xffff00 })
+            );
+            bullet.position.copy(camera.position);
+            
+            const dir = new THREE.Vector3(0, 0, -1);
+            dir.applyQuaternion(camera.quaternion);
+            
+            scene.add(bullet);
+            bullets.push({ mesh: bullet, dir: dir, dist: 0 });
+            
+            // Flash
+            const flash = new THREE.PointLight(0xffaa00, 3, 8);
+            flash.position.copy(camera.position);
+            scene.add(flash);
+            setTimeout(() => scene.remove(flash), 60);
+        }
+        
+        function reload() {
+            if (player.totalAmmo <= 0 || player.ammo >= 30) return;
+            const need = 30 - player.ammo;
+            const take = Math.min(need, player.totalAmmo);
+            player.ammo += take;
+            player.totalAmmo -= take;
+            updateHUD();
+        }
+        
+        function checkWallCollision(x, z, r) {
+            const cx = Math.floor(x / CELL_SIZE);
+            const cz = Math.floor(z / CELL_SIZE);
+            
+            for (let dz = -1; dz <= 1; dz++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const wx = cx + dx;
+                    const wz = cz + dz;
+                    
+                    if (wz >= 0 && wz < maze.length && wx >= 0 && wx < maze[0].length && maze[wz][wx] === 1) {
+                        const minX = wx * CELL_SIZE;
+                        const maxX = (wx + 1) * CELL_SIZE;
+                        const minZ = wz * CELL_SIZE;
+                        const maxZ = (wz + 1) * CELL_SIZE;
+                        
+                        const closestX = Math.max(minX, Math.min(x, maxX));
+                        const closestZ = Math.max(minZ, Math.min(z, maxZ));
+                        
+                        const distSq = (x - closestX) ** 2 + (z - closestZ) ** 2;
+                        if (distSq < r * r) return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        function updatePlayer() {
+            const speed = 0.12;
+            
+            // Movement relative to camera direction
+            // Forward/backward based on joystickDY (up on joystick = forward = negative Y in screen coords)
+            // Strafe based on joystickDX (right on joystick = strafe right)
+            
+            const forward = -joystickDY; // Inverted: pushing up (negative screen Y) = move forward
+            const strafe = joystickDX;   // Right on joystick = strafe right
+            
+            // Calculate movement direction based on player rotation
+            const forwardX = -Math.sin(player.rotation) * forward * speed;
+            const forwardZ = -Math.cos(player.rotation) * forward * speed;
+            const strafeX = Math.cos(player.rotation) * strafe * speed;
+            const strafeZ = -Math.sin(player.rotation) * strafe * speed;
+            
+            const newX = camera.position.x + forwardX + strafeX;
+            const newZ = camera.position.z + forwardZ + strafeZ;
+            
+            if (!checkWallCollision(newX, camera.position.z, 0.35)) {
+                camera.position.x = newX;
+            }
+            if (!checkWallCollision(camera.position.x, newZ, 0.35)) {
+                camera.position.z = newZ;
+            }
+            
+            // Apply rotation
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = player.rotation;
+            camera.rotation.x = player.pitch;
+            
+            if (isFiring) fire();
+        }
+        
+        function updateBullets() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.mesh.position.add(b.dir.clone().multiplyScalar(2.5));
+                b.dist += 2.5;
+                
+                // Hit dino?
+                for (let j = dinosaurs.length - 1; j >= 0; j--) {
+                    const d = dinosaurs[j];
+                    const dist = b.mesh.position.distanceTo(d.mesh.position.clone().setY(1));
+                    
+                    if (dist < 1) {
+                        d.health -= 35;
+                        
+                        scene.remove(b.mesh);
+                        bullets.splice(i, 1);
+                        
+                        if (d.health <= 0) {
+                            scene.remove(d.mesh);
+                            dinosaurs.splice(j, 1);
+                            dinosKilled++;
+                            updateDinoCount();
+                            
+                            if (dinosaurs.length === 0) winGame();
+                        }
+                        break;
+                    }
+                }
+                
+                // Too far or hit wall
+                if (b.dist > 80 || checkWallCollision(b.mesh.position.x, b.mesh.position.z, 0.1)) {
+                    scene.remove(b.mesh);
+                    bullets.splice(i, 1);
+                }
+            }
+        }
+        
+        // Change dinosaur animation state with smooth transitions
+        function changeDinoState(dino, newState) {
+            if (dino.currentState === newState) return;
+            if (dino.isEating) return; // Don't interrupt eating
+            
+            const actions = dino.actions;
+            if (!actions) return;
+            
+            // Fade out current animation
+            const currentAction = actions[dino.currentState];
+            if (currentAction) {
+                currentAction.fadeOut(0.3);
+            }
+            
+            // Fade in new animation
+            const newAction = actions[newState];
+            if (newAction) {
+                newAction.reset();
+                newAction.fadeIn(0.3);
+                newAction.play();
+            }
+            
+            dino.currentState = newState;
+        }
+        
+        function updateDinosaurs() {
+            dinosaurs.forEach(d => {
+                const dx = camera.position.x - d.mesh.position.x;
+                const dz = camera.position.z - d.mesh.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                
+                d.stateTimer++;
+                
+                // If eating, wait for animation to finish
+                if (d.isEating) {
+                    if (d.attackCooldown > 0) {
+                        d.attackCooldown--;
+                    } else {
+                        d.isEating = false;
+                        changeDinoState(d, DINO_STATE.IDLE);
+                    }
+                    return;
+                }
+                
+                // ATTACK - 1 HIT KILL when very close!
+                if (dist < 2.0 && d.attackCooldown <= 0) {
+                    // Play eat/attack animation
+                    changeDinoState(d, DINO_STATE.EAT);
+                    d.isEating = true;
+                    d.attackCooldown = 120; // Animation duration
+                    
+                    // Face player directly for the attack
+                    d.mesh.rotation.y = Math.atan2(dx, dz);
+                    
+                    // 1 HIT KILL!
+                    setTimeout(() => {
+                        if (gameRunning) {
+                            player.health = 0;
+                            updateHUD();
+                            
+                            // Show dramatic death effect
+                            document.getElementById('deathOverlay').classList.add('active');
+                            document.getElementById('dangerIndicator').style.display = 'none';
+                            
+                            // Show death message
+                            setTimeout(() => {
+                                document.getElementById('deathOverlay').classList.remove('active');
+                                if (player.health <= 0) gameOver();
+                            }, 1000);
+                        }
+                    }, 100);
+                    
+                    return;
+                }
+                
+                // STATE MACHINE based on distance
+                if (dist > 25) {
+                    // Estado 1: IDLE (Esperando)
+                    changeDinoState(d, DINO_STATE.IDLE);
+                    d.speed = 0;
+                    
+                } else if (dist > 18) {
+                    // Estado 2: LOOK AROUND (Olhando para os lados)
+                    changeDinoState(d, DINO_STATE.LOOK_AROUND);
+                    d.speed = 0;
+                    
+                    // Comportamento procedural de olhar para os lados (senoide suave)
+                    // A Rexy gira o corpo levemente para esquerda e direita simulando busca
+                    const lookAngle = Math.sin(Date.now() * 0.002) * 0.8; 
+                    // Mantém a orientação geral mas oscila
+                    const baseRotation = Math.atan2(dx, dz);
+                    d.mesh.rotation.y = baseRotation + lookAngle;
+                    
+                } else if (dist > 8) {
+                    // Estado 3: WALKING (Andando na direção do jogador)
+                    changeDinoState(d, DINO_STATE.WALK);
+                    d.speed = d.baseSpeed;
+                    
+                    // Virar suavemente para o jogador
+                    const targetRotation = Math.atan2(dx, dz);
+                    // Interpolação angular suave
+                    let diff = targetRotation - d.mesh.rotation.y;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    d.mesh.rotation.y += diff * 0.05;
+                    
+                } else if (dist > 2.0) {
+                    // Estado 4: RUNNING (Correndo atrás do jogador)
+                    changeDinoState(d, DINO_STATE.RUN);
+                    d.speed = d.baseSpeed * 3.5; // Muito rápida!
+                    
+                    // Trava a mira no jogador (sem suavização, rotação instantânea)
+                    d.mesh.rotation.y = Math.atan2(dx, dz);
+                    
+                } else {
+                    // Estado 5: EAT (Vai atacar no próximo frame pelo bloco de cima)
+                    changeDinoState(d, DINO_STATE.IDLE);
+                    d.mesh.rotation.y = Math.atan2(dx, dz);
+                    d.speed = 0;
+                }
+                
+                // Move towards player if speed > 0
+                if (d.speed > 0 && dist > 2.0) {
+                    const mx = (dx / dist) * d.speed;
+                    const mz = (dz / dist) * d.speed;
+                    
+                    if (!checkWallCollision(d.mesh.position.x + mx, d.mesh.position.z + mz, 0.6)) {
+                        d.mesh.position.x += mx;
+                        d.mesh.position.z += mz;
+                    } else {
+                        // Try to go around obstacle
+                        const angle = Math.atan2(dz, dx);
+                        const sideX = Math.cos(angle + Math.PI/2) * d.speed;
+                        const sideZ = Math.sin(angle + Math.PI/2) * d.speed;
+                        
+                        if (!checkWallCollision(d.mesh.position.x + sideX, d.mesh.position.z + sideZ, 0.6)) {
+                            d.mesh.position.x += sideX;
+                            d.mesh.position.z += sideZ;
+                        }
+                    }
+                }
+                
+                if (d.attackCooldown > 0) d.attackCooldown--;
+            });
+        }
+        
+        function updateMinimap() {
+            const canvas = document.getElementById('minimap');
+            const ctx = canvas.getContext('2d');
+            const scale = canvas.width / (maze[0].length * CELL_SIZE);
+            
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Walls
+            ctx.fillStyle = '#333';
+            for (let z = 0; z < maze.length; z++) {
+                for (let x = 0; x < maze[z].length; x++) {
+                    if (maze[z][x] === 1) {
+                        ctx.fillRect(x * CELL_SIZE * scale, z * CELL_SIZE * scale, CELL_SIZE * scale - 0.5, CELL_SIZE * scale - 0.5);
+                    }
+                }
+            }
+            
+            // Dinos
+            ctx.fillStyle = '#ff3333';
+            dinosaurs.forEach(d => {
+                ctx.beginPath();
+                ctx.arc(d.mesh.position.x * scale, d.mesh.position.z * scale, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Player
+            ctx.fillStyle = '#33ff33';
+            ctx.beginPath();
+            ctx.arc(camera.position.x * scale, camera.position.z * scale, 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Direction
+            ctx.strokeStyle = '#33ff33';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(camera.position.x * scale, camera.position.z * scale);
+            ctx.lineTo(
+                camera.position.x * scale - Math.sin(player.rotation) * 10,
+                camera.position.z * scale - Math.cos(player.rotation) * 10
+            );
+            ctx.stroke();
+        }
+        
+        function updateHUD() {
+            document.getElementById('health').textContent = Math.max(0, player.health);
+            document.getElementById('ammo').textContent = player.ammo;
+            document.getElementById('totalAmmo').textContent = player.totalAmmo;
+        }
+        
+        function updateDinoCount() {
+            document.getElementById('dinoCount').textContent = dinosaurs.length;
+        }
+        
+        function updateDangerIndicator() {
+            const indicator = document.getElementById('dangerIndicator');
+            let closestDist = Infinity;
+            let isRunning = false;
+            
+            dinosaurs.forEach(d => {
+                const dx = camera.position.x - d.mesh.position.x;
+                const dz = camera.position.z - d.mesh.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    isRunning = d.currentState === DINO_STATE.RUN;
+                }
+            });
+            
+            if (closestDist < 8 && isRunning) {
+                indicator.style.display = 'block';
+                indicator.textContent = closestDist < 4 ? '🦖 CORRA!!! 🦖' : '⚠️ REXY ESTÁ PERTO! ⚠️';
+                indicator.style.background = closestDist < 4 ? 'rgba(200, 0, 0, 0.95)' : 'rgba(255, 100, 0, 0.9)';
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
+        
+        function showDamage() {
+            const overlay = document.getElementById('damageOverlay');
+            overlay.style.opacity = '1';
+            setTimeout(() => overlay.style.opacity = '0', 200);
+        }
+        
+        function showUI() {
+            ['hud', 'crosshair', 'joystickContainer', 'fireBtn', 'reloadBtn', 'dinoCounter', 'minimap'].forEach(id => {
+                document.getElementById(id).classList.remove('hidden');
+            });
+        }
+        
+        function hideUI() {
+            ['hud', 'crosshair', 'joystickContainer', 'fireBtn', 'reloadBtn', 'dinoCounter', 'minimap'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+        }
+        
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            
+            // Reset
+            player = { rotation: 0, pitch: 0, health: 100, ammo: 30, totalAmmo: 90 };
+            camera.position.set(1.5 * CELL_SIZE, 1.6, 1.5 * CELL_SIZE);
+            camera.rotation.set(0, 0, 0);
+            dinosKilled = 0;
+            
+            // Clear
+            bullets.forEach(b => scene.remove(b.mesh));
+            bullets = [];
+            
+            spawnDinosaurs();
+            updateHUD();
+            showUI();
+            
+            gameRunning = true;
+            animate();
+        }
+        
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('winScreen').classList.add('hidden');
+            startGame();
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            hideUI();
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+        
+        function winGame() {
+            gameRunning = false;
+            hideUI();
+            document.getElementById('finalScore').textContent = `Eliminados: ${dinosKilled} dinossauros!`;
+            document.getElementById('winScreen').classList.remove('hidden');
+        }
+        
+        function animate() {
+            if (!gameRunning) return;
+            
+            requestAnimationFrame(animate);
+            
+            const delta = clock.getDelta();
+            
+            // Update animations
+            if (mixers.length > 0) {
+                mixers.forEach(mixer => mixer.update(delta));
+            }
+            
+            updatePlayer();
+            updateDinosaurs();
+            updateBullets();
+            updateMinimap();
+            updateDangerIndicator();
+            
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
